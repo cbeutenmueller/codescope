@@ -37,19 +37,28 @@ uv add <package>
 
 Black is configured in `pyproject.toml` with `line-length = 100`. Always run `black .` before committing. CI (`github/workflows/ci.yml`) runs `black --check` and `pytest` on every push and PR.
 
+**Frontend build** (requires Node 20+):
+```bash
+cd codescope/frontend
+npm install
+npm run build      # outputs to codescope/server/static/
+npm run dev        # dev server with HMR (proxies /api and /ws to localhost:8421)
+```
+The built frontend is served automatically when `codescope review` starts the server. `codescope/server/static/` is git-ignored; commit built assets only for release.
+
 ## Architecture
 
 ```
 codescope/
 ├── cli.py                     # Entry point: init, index, review, export, patterns
 ├── server/                    # FastAPI backend (serves React build as static files)
-│   ├── app.py
-│   ├── routes/                # review, patterns, libraries, export
-│   └── websockets.py          # Streaming LLM output to frontend
-├── frontend/                  # React + TypeScript app
+│   ├── app.py                 # All routes + asyncio.Queue WebSocket streaming
+│   └── websockets.py          # ConnectionManager (future multi-client broadcast)
+├── frontend/                  # React + TypeScript app (Vite, builds → server/static/)
 │   └── src/
-│       ├── pages/             # HotSpots, Review, PatternCreate, Patterns, Report
-│       └── components/        # CodeViewer (Monaco), HotspotBar, FindingCard
+│       ├── pages/             # Dashboard, Findings, Hotspots, Patterns
+│       ├── api.ts             # Typed fetch wrappers
+│       └── types.ts           # Shared TypeScript interfaces
 ├── hotspot/                   # Hot spot ranking layer
 │   ├── scorer.py              # hotspot_score formula (see below)
 │   ├── ranker.py              # Top-N selection
@@ -94,8 +103,8 @@ The LLM is only called on top-N hot spots (default 20). Weights are configurable
 |---|---|
 | Backend | FastAPI + WebSockets |
 | Frontend | React + TypeScript + Monaco Editor |
-| AST parsing | tree-sitter (py-tree-sitter), Java + TypeScript grammars |
-| Local index | Tantivy via `tantivy-py` |
+| AST parsing | Regex-based extraction (tree-sitter installed but not yet wired for extraction) |
+| Local index | SQLite (built-in, Windows/3.13-compatible) |
 | Git signals | GitPython |
 | Complexity | lizard |
 | LLM client | openai-python SDK (configurable `base_url` for llama.cpp, Ollama, OpenAI, Azure) |

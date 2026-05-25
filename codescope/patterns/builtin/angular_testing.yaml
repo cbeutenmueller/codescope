@@ -1,0 +1,76 @@
+- id: ng-test-1
+  name: detectChanges Before Inputs Set
+  category: angular-testing
+  language: typescript
+  severity: high
+  description: >
+    A component test calls fixture.detectChanges() before setting @Input() properties.
+    Angular runs ngOnInit during the first detectChanges call, so the component
+    initialises with undefined inputs, producing wrong behaviour that masks real bugs.
+  ast_hints:
+    method_call_pattern: ["*.detectChanges("]
+    file_pattern: "*.spec.ts"
+  prompt_supplement: >
+    Look for test blocks (it/describe) that call fixture.detectChanges() before
+    all required @Input() properties have been set on component.xxx. The correct
+    order is: set inputs → detectChanges → assert. Any detectChanges before inputs
+    is almost certainly wrong unless the component has no required inputs.
+  fix_template: >
+    component.inputProperty = expectedValue;   // set inputs first
+    fixture.detectChanges();                   // THEN trigger ngOnInit
+    expect(fixture.nativeElement.textContent).toContain(expectedValue);
+  tags: [angular-testing, inputs, lifecycle]
+  enabled: true
+
+- id: ng-test-2
+  name: Missing async/fakeAsync for Observable-Backed Test
+  category: angular-testing
+  language: typescript
+  severity: medium
+  description: >
+    A test that subscribes to an Observable or calls a service method returning
+    an Observable is not wrapped in fakeAsync/async, meaning the assertion runs
+    before the Observable emits and always passes vacuously.
+  ast_hints:
+    method_call_pattern: ["*.subscribe(", "firstValueFrom(", "lastValueFrom("]
+    file_pattern: "*.spec.ts"
+    annotations_absent: ["fakeAsync", "async"]
+  prompt_supplement: >
+    Look for it() blocks that call .subscribe() or use firstValueFrom/lastValueFrom
+    but are not wrapped in fakeAsync() or async(). Without async handling, the
+    test callback returns before the Observable emits, and any expect() inside
+    subscribe() is never executed — the test passes trivially.
+  fix_template: >
+    it('should load items', fakeAsync(() => {
+      let result: Item[];
+      service.getItems().subscribe(items => result = items);
+      tick();
+      expect(result).toBeDefined();
+    }));
+  tags: [angular-testing, async, rxjs]
+  enabled: true
+
+- id: ng-test-3
+  name: Real HTTP Client in Unit Test
+  category: angular-testing
+  language: typescript
+  severity: high
+  description: >
+    A component or service test imports HttpClientModule (not HttpClientTestingModule),
+    causing tests to make real HTTP requests to a live backend. This makes tests
+    slow, flaky, and environment-dependent.
+  ast_hints:
+    method_call_pattern: ["HttpClientModule"]
+    file_pattern: "*.spec.ts"
+    annotations_absent: ["HttpClientTestingModule"]
+  prompt_supplement: >
+    Look for TestBed.configureTestingModule imports that include HttpClientModule
+    without HttpClientTestingModule. Any test importing HttpClientModule will make
+    real HTTP calls rather than intercepted mock calls.
+  fix_template: >
+    imports: [HttpClientTestingModule],  // not HttpClientModule
+    providers: [YourService]
+    // Then inject HttpTestingController to mock responses:
+    // const httpMock = TestBed.inject(HttpTestingController);
+  tags: [angular-testing, http, test-isolation]
+  enabled: true

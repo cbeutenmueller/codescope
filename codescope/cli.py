@@ -1,6 +1,8 @@
 from __future__ import annotations
 import asyncio
 import sys
+import threading
+import webbrowser
 from pathlib import Path
 
 import typer
@@ -158,8 +160,39 @@ def review(
     else:
         session_path = session.save()
         console.print(f"Session saved: {session_path}")
+
+    if not no_server:
+        _launch_server(root, config, session)
+    else:
+        if not output:
+            console.print(
+                f"\nRe-export with: [cyan]codescope export --session {session.session_id}[/cyan]"
+            )
+
+
+def _launch_server(root: Path, config, session) -> None:
+    from codescope.server.app import app as fastapi_app, configure, preload_session
+
+    configure(root, config)
+    preload_session(session)
+
+    host = "127.0.0.1"
+    port = config.server.port
+    url = f"http://{host}:{port}/?session={session.session_id}"
+    console.print(f"\n[green]OK[/green] Serving review at [cyan]{url}[/cyan]")
+    console.print("Press [bold]Ctrl+C[/bold] to stop.\n")
+
+    if config.server.open_browser:
+        threading.Timer(1.2, webbrowser.open, args=[url]).start()
+
+    try:
+        import uvicorn
+
+        uvicorn.run(fastapi_app, host=host, port=port, log_level="warning")
+    except ImportError:
         console.print(
-            "\nRe-export with: [cyan]codescope export --session {session.session_id}[/cyan]"
+            "[yellow]uvicorn not installed — run:[/yellow] uv add uvicorn\n"
+            f"Then open: [cyan]{url}[/cyan]"
         )
 
 

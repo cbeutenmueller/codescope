@@ -8,3 +8,17 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Frontend
+codescope/frontend/node_modules/
+codescope/server/static/
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Editors
+.idea/
+.vscode/
+*.sw?
