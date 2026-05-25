@@ -1,0 +1,74 @@
+- id: java-test-1
+  name: SpringBootTest for Unit-Scope Test
+  category: java-testing
+  language: java
+  severity: medium
+  description: >
+    A test class uses @SpringBootTest but only tests a single class or method in isolation.
+    Loading the full application context for a unit test is 10-100x slower than necessary
+    and masks the unit's actual dependencies.
+  ast_hints:
+    annotations_present: ["@SpringBootTest"]
+    file_pattern: "*Test.java"
+  prompt_supplement: >
+    Look for test classes annotated @SpringBootTest whose test methods only interact
+    with a single class under test (not the full HTTP stack, not multiple services).
+    If the test could be written with @ExtendWith(MockitoExtension.class) and mocked
+    collaborators, the @SpringBootTest is unnecessary overhead.
+    Ignore tests that use MockMvc, WebTestClient, or TestRestTemplate — those need the context.
+  fix_template: >
+    Replace @SpringBootTest with @ExtendWith(MockitoExtension.class) and inject
+    the class under test directly. Mock collaborators with @Mock / @InjectMocks.
+  tags: [java-testing, spring-boot, performance]
+  enabled: true
+
+- id: java-test-2
+  name: Missing @DirtiesContext on State-Mutating Test
+  category: java-testing
+  language: java
+  severity: high
+  description: >
+    A @SpringBootTest integration test modifies shared application state (database records,
+    caches, static fields) without @DirtiesContext or a cleanup mechanism. Subsequent tests
+    in the same context run may see polluted state, causing order-dependent failures.
+  ast_hints:
+    annotations_present: ["@SpringBootTest"]
+    method_call_pattern: ["*Repository.save*", "*Repository.delete*", "*EntityManager.persist*"]
+    annotations_absent: ["@DirtiesContext", "@Transactional"]
+    file_pattern: "*Test.java"
+  prompt_supplement: >
+    Look for @SpringBootTest classes that call repository save/delete or EntityManager
+    persist/remove methods in @Test methods, without @DirtiesContext on the class or method,
+    and without @Transactional to roll back. These tests leave the shared context dirty.
+    Ignore if the class has a @BeforeEach/@AfterEach that truncates tables or resets state.
+  fix_template: >
+    Option 1: Add @Transactional to the test class/method — Spring rolls back after each test.
+    Option 2: Add @DirtiesContext(classMode = AFTER_EACH_TEST_METHOD) to reload the context.
+    Option 3: Add a @BeforeEach that resets the relevant data.
+  tags: [java-testing, spring-boot, test-isolation]
+  enabled: true
+
+- id: java-test-3
+  name: MockBean in Full Integration Test
+  category: java-testing
+  language: java
+  severity: medium
+  description: >
+    A @SpringBootTest integration test uses @MockBean to replace a real bean with a mock.
+    This forces a new application context to be created for every test class that uses a
+    different @MockBean configuration, negating the context caching Spring provides.
+  ast_hints:
+    annotations_present: ["@SpringBootTest", "@MockBean"]
+    file_pattern: "*Test.java"
+  prompt_supplement: >
+    Look for test classes that have both @SpringBootTest and @MockBean fields.
+    Each unique combination of @MockBean declarations creates a separate application context.
+    If the test suite has many such classes, startup time grows linearly.
+    Acceptable when the real bean calls an external system (email, payment, S3).
+    Flag when the mocked bean is an internal service that could be wired for real.
+  fix_template: >
+    If testing HTTP endpoints: use @WebMvcTest (loads only web layer) instead of
+    @SpringBootTest — @MockBean is expected there and doesn't break context caching.
+    If testing internal logic: drop to a unit test with Mockito instead.
+  tags: [java-testing, spring-boot, context-caching]
+  enabled: true

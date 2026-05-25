@@ -1,5 +1,4 @@
 from __future__ import annotations
-import asyncio
 import uuid
 from pathlib import Path
 
@@ -7,7 +6,6 @@ from codescope.config import AppConfig
 from codescope.hotspot.ranker import rank_files
 from codescope.hotspot.scorer import HotspotScore
 from codescope.indexer.walker import walk_files
-from codescope.indexer.ast_extractor import AstExtractor
 from codescope.patterns.loader import load_patterns
 from codescope.patterns.schema import Pattern
 from codescope.llm.provider import LLMProvider
@@ -25,7 +23,6 @@ class AnalysisRunner:
         self._config = config
         self._root = project_root
         self._llm = LLMProvider(config.llm_profile(llm_profile))
-        self._extractor = AstExtractor()
 
     async def run(
         self,

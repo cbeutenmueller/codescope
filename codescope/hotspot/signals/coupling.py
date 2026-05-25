@@ -5,7 +5,7 @@ from pathlib import Path
 _JAVA_IMPORT = re.compile(r"^\s*import\s+[\w.]+;", re.MULTILINE)
 _JAVA_AUTOWIRED = re.compile(r"@(Autowired|Inject|Resource)\b")
 _TS_IMPORT = re.compile(r"^\s*import\s+.+?\s+from\s+['\"]", re.MULTILINE)
-_TS_CONSTRUCTOR_INJECT = re.compile(r"constructor\s*\([^)]{30,}\)")
+_TS_CONSTRUCTOR_PARAMS = re.compile(r"constructor\s*\(([^)]{30,})\)")
 
 
 def get_coupling_signals(file_path: str) -> float:
@@ -22,6 +22,8 @@ def get_coupling_signals(file_path: str) -> float:
         return float(imports + di_params)
     elif path.endswith((".ts", ".tsx")):
         imports = len(_TS_IMPORT.findall(text))
-        return float(imports)
+        # Count constructor-injected dependencies (long param lists = many DI tokens)
+        di_params = sum(len(m.group(1).split(",")) for m in _TS_CONSTRUCTOR_PARAMS.finditer(text))
+        return float(imports + di_params)
 
     return 0.0

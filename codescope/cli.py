@@ -51,16 +51,16 @@ def init(
     config_path = codescope_dir / "config.toml"
     if not config_path.exists():
         config_path.write_text(_DEFAULT_CONFIG_TOML, encoding="utf-8")
-        console.print(f"[green]✓[/green] Created {config_path}")
+        console.print(f"[green]OK[/green] Created {config_path}")
     else:
-        console.print(f"[yellow]→[/yellow] Config already exists: {config_path}")
+        console.print(f"[yellow]->[/yellow] Config already exists: {config_path}")
 
     user_dir = Path.home() / ".codescope"
     user_dir.mkdir(parents=True, exist_ok=True)
     (user_dir / "patterns").mkdir(exist_ok=True)
 
     console.print(
-        "[green]✓[/green] CodeScope initialised. Edit .codescope/config.toml to configure your LLM."
+        "[green]OK[/green] CodeScope initialised. Edit .codescope/config.toml to configure your LLM."
     )
 
 
@@ -93,7 +93,7 @@ def index(
         idx = build_index(root, config)
 
     db = root / config.index.path / "codescope.db"
-    console.print(f"[green]✓[/green] Index written to {db}")
+    console.print(f"[green]OK[/green] Index written to {db}")
 
 
 # ---------------------------------------------------------------------------
@@ -216,7 +216,7 @@ def export(
 
     if output:
         output.write_text(report, encoding="utf-8")
-        console.print(f"[green]✓[/green] Report written to {output}")
+        console.print(f"[green]OK[/green] Report written to {output}")
     else:
         console.print(report)
 

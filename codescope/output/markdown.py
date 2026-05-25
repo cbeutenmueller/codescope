@@ -108,6 +108,6 @@ def _render_finding(rank: int, af: AggregatedFinding) -> list[str]:
 
 def _rel_path(path: str, root: str) -> str:
     try:
-        return str(Path(path).relative_to(Path(root)))
+        return Path(path).relative_to(Path(root)).as_posix()
     except ValueError:
-        return path
+        return Path(path).as_posix()
