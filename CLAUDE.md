@@ -13,25 +13,31 @@ See `docs/codescope-spec.md` for the full architecture spec and `docs/codescope-
 This project uses [uv](https://docs.astral.sh/uv/) for package management (Python 3.13).
 
 ```bash
-# Install dependencies
-uv sync
+# Install dependencies (including dev tools)
+uv sync --extra dev
 
 # Run the app
 uv run python main.py
 
-# Run a single test
-uv run pytest tests/test_hotspot_scorer.py
-
 # Run all tests
 uv run pytest
+
+# Run a single test file
+uv run pytest tests/test_hotspot_scorer.py
+
+# Format code
+uv run black .
+
+# Check formatting (what CI enforces)
+uv run black --check .
 
 # Add a dependency
 uv add <package>
 ```
 
-## Planned Architecture
+Black is configured in `pyproject.toml` with `line-length = 100`. Always run `black .` before committing. CI (`github/workflows/ci.yml`) runs `black --check` and `pytest` on every push and PR.
 
-The codebase does not yet exist beyond the stub `main.py`. All module paths below come from `docs/codescope-spec.md`.
+## Architecture
 
 ```
 codescope/
