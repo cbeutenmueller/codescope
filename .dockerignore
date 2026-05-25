@@ -1,0 +1,22 @@
+.git/
+.venv/
+__pycache__/
+*.py[oc]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Frontend intermediates (built in Docker, not needed from host)
+codescope/frontend/node_modules/
+codescope/server/static/
+
+# Dev / docs
+tests/
+docs/
+*.md
+LICENSE
+.gitignore
+.dockerignore
