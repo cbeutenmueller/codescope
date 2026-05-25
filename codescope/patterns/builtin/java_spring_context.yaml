@@ -1,0 +1,59 @@
+- id: spring-ctx-1
+  name: Transactional on Private Method
+  category: spring-context
+  language: java
+  severity: high
+  description: >
+    @Transactional on a private method has no effect because Spring's AOP proxy
+    cannot intercept private calls. The transaction boundary is silently absent.
+  ast_hints:
+    annotations_present: ["@Transactional"]
+    file_pattern: "*.java"
+  prompt_supplement: >
+    Look for private methods annotated with @Transactional. Spring's AOP proxy
+    cannot intercept private method calls, so the annotation has no effect.
+    This is a silent failure — no exception is thrown but no transaction is started.
+  fix_template: >
+    Make the method package-private or public, or move the transactional logic
+    to a separate bean that gets called through the proxy.
+  tags: [spring-context, transactional, aop]
+  enabled: true
+
+- id: spring-ctx-2
+  name: Transactional Self-Invocation
+  category: spring-context
+  language: java
+  severity: high
+  description: >
+    A bean calls its own @Transactional method directly (this.method()). Because the
+    call bypasses the Spring proxy, the transactional boundary is not established.
+  ast_hints:
+    annotations_present: ["@Transactional"]
+    scope: class_body
+  prompt_supplement: >
+    Look for methods that call another @Transactional method on the same class
+    via a direct this.x() call or unqualified x() call. The Spring proxy wraps
+    the bean, so intra-class calls bypass the proxy and the transaction semantics.
+  fix_template: >
+    Inject the bean into itself (@Lazy @Autowired private MyService self) and call
+    self.method(), or extract the inner method to a separate @Service bean.
+  tags: [spring-context, transactional, aop, self-invocation]
+  enabled: true
+
+- id: spring-ctx-3
+  name: Async Proxy Bypass
+  category: spring-context
+  language: java
+  severity: medium
+  description: >
+    @Async on a method called within the same class bypasses the proxy, causing
+    the method to run synchronously and defeating its purpose.
+  ast_hints:
+    annotations_present: ["@Async"]
+  prompt_supplement: >
+    Look for @Async methods that are invoked from within the same class without
+    going through the Spring proxy. Same-class calls never reach the proxy.
+  fix_template: >
+    Move the @Async method to a separate @Component bean and inject it.
+  tags: [spring-context, async, aop]
+  enabled: true

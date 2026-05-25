@@ -1,0 +1,47 @@
+- id: spring-sec-1
+  name: Unnecessary User Lookup via Repository
+  category: spring-security
+  language: java
+  severity: medium
+  description: >
+    Controller fetches a User entity by ID when the authenticated principal
+    is already available via Spring Security. Adds a redundant DB query on
+    every request.
+  ast_hints:
+    annotations_present: ["@GetMapping", "@PostMapping", "@PutMapping", "@DeleteMapping"]
+    method_call_pattern: ["*UserRepository.find*", "*userService.findById*", "*userRepository.getById*"]
+    parameter_type_absent: ["Authentication", "Principal", "@AuthenticationPrincipal"]
+  prompt_supplement: >
+    Look for controller methods that call a user repository or user service
+    to fetch the current user by ID, when Spring Security's authenticated
+    principal is already available as an injectable parameter.
+    Ignore cases where a *different* user is being looked up (admin operations).
+  fix_template: >
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(@AuthenticationPrincipal UserDetails user) {
+        // user is already available — no repository call needed
+    }
+  tags: [spring-security, performance, spring-mvc]
+  enabled: true
+
+- id: spring-sec-2
+  name: Direct SecurityContextHolder Access in Service Layer
+  category: spring-security
+  language: java
+  severity: medium
+  description: >
+    Service class accesses SecurityContextHolder.getContext() directly, coupling
+    the service to the web security context and making it untestable without
+    mocking the static holder.
+  ast_hints:
+    method_call_pattern: ["SecurityContextHolder.getContext*"]
+    file_pattern: "*Service.java"
+  prompt_supplement: >
+    Look for service-layer classes (not controllers or security config) that call
+    SecurityContextHolder.getContext(). Services should receive the principal as
+    a parameter, not reach into the security context directly.
+  fix_template: >
+    Pass the Authentication or UserDetails as a method parameter, injected
+    at the controller layer where the security context is appropriate.
+  tags: [spring-security, testability, layering]
+  enabled: true

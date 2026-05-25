@@ -1,0 +1,69 @@
+- id: ng-rxjs-1
+  name: Subscription Leak — Missing Unsubscribe
+  category: angular-rxjs
+  language: typescript
+  severity: high
+  description: >
+    Component subscribes to an Observable manually but does not unsubscribe in
+    ngOnDestroy. This leaks memory and can cause ghost updates after the
+    component is destroyed.
+  ast_hints:
+    method_call_pattern: ["*.subscribe("]
+    annotations_present: ["@Component"]
+    parameter_type_absent: ["takeUntil", "takeUntilDestroyed", "AsyncPipe"]
+  prompt_supplement: >
+    Look for components that call .subscribe() on an Observable but do not
+    store the Subscription for later unsubscription, do not use takeUntil,
+    takeUntilDestroyed, or the async pipe. Ignore subscriptions inside
+    ngOnDestroy itself or where the Observable is known to complete (e.g., HTTP calls
+    via HttpClient that complete after one emission).
+  fix_template: >
+    Use the async pipe in the template, or takeUntilDestroyed(this.destroyRef),
+    or implement ngOnDestroy and call this.subscription.unsubscribe().
+  tags: [angular-rxjs, memory-leak, subscription]
+  enabled: true
+
+- id: ng-rxjs-2
+  name: Nested Subscribe
+  category: angular-rxjs
+  language: typescript
+  severity: high
+  description: >
+    An Observable subscription callback contains another .subscribe() call.
+    This creates a nested, difficult-to-cancel chain that is hard to reason
+    about and error-prone. Should be flattened with switchMap, concatMap, or mergeMap.
+  ast_hints:
+    method_call_pattern: ["*.subscribe("]
+    contains_construct: [lambda]
+  prompt_supplement: >
+    Look for .subscribe() calls where the subscription callback contains
+    another .subscribe() call. This nesting pattern is a strong code smell
+    in RxJS — it defeats the purpose of reactive composition.
+  fix_template: >
+    Replace nested subscribe with a flattening operator:
+      outer$.pipe(
+        switchMap(value => inner$(value))
+      ).subscribe(result => ...);
+  tags: [angular-rxjs, anti-pattern, rxjs-operators]
+  enabled: true
+
+- id: ng-rxjs-3
+  name: Subject Exposed as Observable
+  category: angular-rxjs
+  language: typescript
+  severity: medium
+  description: >
+    A Subject or BehaviorSubject is exposed as a public property, allowing
+    external code to call .next() and pollute the stream from outside the
+    owning service.
+  ast_hints:
+    method_call_pattern: ["new Subject", "new BehaviorSubject", "new ReplaySubject"]
+    annotations_present: ["@Injectable"]
+  prompt_supplement: >
+    Look for services that declare a Subject/BehaviorSubject as a public field.
+    The subject should be private; expose only the .asObservable() cast.
+  fix_template: >
+    private readonly _items$ = new BehaviorSubject<Item[]>([]);
+    readonly items$ = this._items$.asObservable();
+  tags: [angular-rxjs, encapsulation, rxjs-patterns]
+  enabled: true

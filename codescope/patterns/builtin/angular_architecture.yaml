@@ -1,0 +1,45 @@
+- id: ng-arch-1
+  name: Missing OnPush Change Detection
+  category: angular-architecture
+  language: typescript
+  severity: low
+  description: >
+    A component uses the default (CheckAlways) change detection strategy instead
+    of OnPush. For components with immutable inputs or observable data, this
+    causes unnecessary re-renders on every change detection cycle.
+  ast_hints:
+    annotations_present: ["@Component"]
+    parameter_type_absent: ["ChangeDetectionStrategy.OnPush"]
+  prompt_supplement: >
+    Look for @Component declarations that do not set changeDetection: ChangeDetectionStrategy.OnPush.
+    Focus on components that receive data via @Input() properties (especially objects/arrays)
+    or subscribe to Observables. Default strategy components re-check on every CD cycle.
+  fix_template: >
+    @Component({
+      changeDetection: ChangeDetectionStrategy.OnPush,
+      ...
+    })
+  tags: [angular-architecture, performance, change-detection]
+  enabled: true
+
+- id: ng-arch-2
+  name: Smart Component Logic in Dumb Component
+  category: angular-architecture
+  language: typescript
+  severity: medium
+  description: >
+    A presentational (dumb) component directly injects and calls a service,
+    coupling it to business logic and breaking the smart/dumb separation.
+  ast_hints:
+    annotations_present: ["@Component"]
+    parameter_type_present: ["Service"]
+  prompt_supplement: >
+    Look for components that inject a service (other than pure utilities like
+    Router, ActivatedRoute) and are clearly presentational — they have
+    many @Input() properties and/or emit @Output() events. If they also call
+    a data service directly, the smart/dumb boundary is violated.
+  fix_template: >
+    Move service calls to the parent smart (container) component.
+    Pass data down via @Input() and emit actions via @Output() EventEmitter.
+  tags: [angular-architecture, smart-dumb, separation-of-concerns]
+  enabled: true

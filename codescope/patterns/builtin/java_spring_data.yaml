@@ -1,0 +1,66 @@
+- id: spring-data-1
+  name: Query Inside Loop or Stream
+  category: spring-data
+  language: java
+  severity: high
+  description: >
+    A repository or service method is called inside a loop or stream map operation,
+    causing N+1 queries. Each iteration fires a separate database round-trip.
+  ast_hints:
+    contains_construct: [loop, stream_map]
+    method_call_pattern: ["*Repository.find*", "*Repository.get*", "*Service.find*"]
+  prompt_supplement: >
+    Look for repository or DAO method calls inside for loops, while loops,
+    or stream .map() / .forEach() lambdas. The call must be to a method that
+    issues a SQL query (findById, findAll, findBy*, getOne, etc.).
+    Ignore cases where the collection being iterated is the result of the query.
+  fix_template: >
+    Collect all IDs first, then use a single bulk query:
+      List<Long> ids = items.stream().map(Item::getId).toList();
+      Map<Long, Entity> byId = repository.findAllById(ids)
+          .stream().collect(Collectors.toMap(Entity::getId, e -> e));
+  tags: [spring-data, performance, n-plus-one]
+  enabled: true
+
+- id: spring-data-2
+  name: Missing readOnly on Query Transaction
+  category: spring-data
+  language: java
+  severity: medium
+  description: >
+    A @Transactional method performs only reads but does not declare readOnly=true.
+    This wastes the dirty-checking overhead Hibernate applies to every loaded entity.
+  ast_hints:
+    annotations_present: ["@Transactional"]
+    annotations_absent: ["readOnly"]
+    method_call_pattern: ["*Repository.find*", "*Repository.get*"]
+  prompt_supplement: >
+    Look for @Transactional methods whose body only calls read operations
+    (find*, get*, count*, exists*) and does not call save, delete, or persist.
+    The annotation lacks readOnly=true.
+  fix_template: >
+    @Transactional(readOnly = true)
+    public List<Foo> findAll() { ... }
+  tags: [spring-data, performance, transactional]
+  enabled: true
+
+- id: spring-data-3
+  name: FetchType.EAGER on Collection
+  category: spring-data
+  language: java
+  severity: high
+  description: >
+    A @OneToMany or @ManyToMany association declares FetchType.EAGER.
+    This loads the full collection on every parent load, regardless of whether
+    the collection is needed, and is the leading cause of accidental N+1 queries.
+  ast_hints:
+    annotations_present: ["@OneToMany", "@ManyToMany"]
+    method_call_pattern: ["FetchType.EAGER"]
+  prompt_supplement: >
+    Look for @OneToMany or @ManyToMany fields with fetch = FetchType.EAGER.
+    Flag any EAGER collection — there is almost no valid use case.
+  fix_template: >
+    Change to FetchType.LAZY (the JPA default for collections) and use
+    entity graphs or JOIN FETCH in queries where eager loading is genuinely needed.
+  tags: [spring-data, performance, jpa]
+  enabled: true

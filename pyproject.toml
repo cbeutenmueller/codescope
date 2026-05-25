@@ -1,0 +1,43 @@
+[project]
+name = "codescope"
+version = "0.1.0"
+description = "Review companion for senior developers. Finds framework-semantic smells."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.13"
+dependencies = [
+    "typer[all]>=0.12",
+    "pydantic>=2",
+    "gitpython>=3.1",
+    "lizard>=1.17",
+    "pyyaml>=6",
+    "openai>=1",
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "tree-sitter>=0.23",
+    "tree-sitter-java>=0.23",
+    "tree-sitter-typescript>=0.23",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5",
+    "black>=24",
+]
+
+[project.scripts]
+codescope = "codescope.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.black]
+line-length = 100
+target-version = ["py313"]

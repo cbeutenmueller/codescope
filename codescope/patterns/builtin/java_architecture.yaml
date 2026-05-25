@@ -1,0 +1,63 @@
+- id: java-arch-1
+  name: Controller-to-Repository Direct Coupling
+  category: java-architecture
+  language: java
+  severity: high
+  description: >
+    A controller class injects and calls a repository directly, bypassing the
+    service layer. This places business logic in the wrong layer and prevents
+    reuse and testing of that logic in isolation.
+  ast_hints:
+    annotations_present: ["@RestController", "@Controller"]
+    parameter_type_present: ["Repository"]
+  prompt_supplement: >
+    Look for @Controller or @RestController classes that have a repository
+    injected (via @Autowired, constructor, or field). Controllers should only
+    call service-layer beans. Repositories are an infrastructure concern.
+  fix_template: >
+    Extract a @Service that wraps the repository. The controller calls the service.
+  tags: [java-architecture, layering, ddd]
+  enabled: true
+
+- id: java-arch-2
+  name: Constructor Over-Injection (God Service)
+  category: java-architecture
+  language: java
+  severity: medium
+  description: >
+    A class constructor has 7 or more parameters, indicating the class handles
+    too many responsibilities and should be split.
+  ast_hints:
+    min_param_count: 7
+    scope: class_body
+  prompt_supplement: >
+    Look for constructors or @Autowired fields with 7 or more dependencies.
+    This is a strong indicator that the class violates the Single Responsibility
+    Principle. Count only collaborator dependencies, not value parameters.
+  fix_template: >
+    Extract cohesive groups of dependencies into dedicated services.
+    Consider applying the Facade or Mediator pattern.
+  tags: [java-architecture, solid, god-class]
+  enabled: true
+
+- id: java-arch-3
+  name: Anemic Domain Model
+  category: java-architecture
+  language: java
+  severity: low
+  description: >
+    An entity class has public setters for every field but no domain methods,
+    indicating all logic has been pushed into services rather than the domain model.
+  ast_hints:
+    annotations_present: ["@Entity"]
+    file_pattern: "*.java"
+  prompt_supplement: >
+    Look for @Entity classes with many public setters and no methods that
+    encode business rules or invariants. The class is a data bag, not a
+    domain object. Business logic for this entity likely lives scattered
+    across service classes.
+  fix_template: >
+    Move invariant enforcement into the entity. Replace setters with
+    meaningful domain methods that express intent (markShipped(), approve()).
+  tags: [java-architecture, ddd, domain-model]
+  enabled: true
