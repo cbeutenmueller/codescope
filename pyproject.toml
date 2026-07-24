@@ -8,7 +8,7 @@ requires-python = ">=3.13"
 dependencies = [
     "typer[all]>=0.12",
     "pydantic>=2",
-    "gitpython>=3.1",
+    "gitpython>=3.1.54",
     "lizard>=1.17",
     "pyyaml>=6",
     "openai>=1",
